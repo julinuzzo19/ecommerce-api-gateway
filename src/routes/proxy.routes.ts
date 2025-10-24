@@ -54,7 +54,7 @@ router.use(
 
 router.use(
   "/inventory",
-  // authMiddleware,
+  authMiddleware,
   createProxyMiddleware({
     target: config.services.inventory,
     changeOrigin: true,
