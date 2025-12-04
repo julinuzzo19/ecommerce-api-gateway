@@ -1,6 +1,6 @@
 # API Gateway 🚀
 
-API Gateway centralizado que gestiona y redirige peticiones a los microservicios de autenticación y ecommerce.
+API Gateway centralizado que gestiona y redirige peticiones a los microservicios de autenticación, ecommerce e inventario.
 
 ## 📋 Características
 
@@ -21,8 +21,10 @@ Cliente
    ↓
 API Gateway (Puerto 3000)
    ↓
-   ├─→ Auth Service (Puerto 3001)      - Rutas públicas: /auth/*
-   └─→ Ecommerce Service (Puerto 3002) - Rutas protegidas: /ecommerce/*
+   ├─→ Auth Service - Rutas públicas: /auth/*
+   ├─→ Ecommerce Service - Rutas protegidas: /ecommerce/*
+   └─→ Inventory Service - Rutas protegidas: /inventory/*
+   └─→ User Service - Rutas protegidas: /users/*
 ```
 
 ## 🚀 Inicio Rápido
@@ -71,21 +73,24 @@ npm start
 
 ### Rutas Públicas (Sin autenticación)
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/health` | Health check del gateway |
-| POST | `/auth/login` | Iniciar sesión |
-| POST | `/auth/register` | Registrar nuevo usuario |
-| POST | `/auth/forgot-password` | Recuperar contraseña |
-| * | `/auth/*` | Cualquier ruta del servicio de auth |
+| Método | Ruta                    | Descripción                         |
+| ------ | ----------------------- | ----------------------------------- |
+| GET    | `/health`               | Health check del gateway            |
+| POST   | `/auth/login`           | Iniciar sesión                      |
+| POST   | `/auth/register`        | Registrar nuevo usuario             |
+| POST   | `/auth/forgot-password` | Recuperar contraseña                |
+| \*     | `/auth/*`               | Cualquier ruta del servicio de auth |
 
 ### Rutas Protegidas (Requieren autenticación)
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| * | `/ecommerce/*` | Todas las rutas del servicio ecommerce |
+| Método | Ruta           | Descripción                            |
+| ------ | -------------- | -------------------------------------- |
+| \*     | `/ecommerce/*` | Todas las rutas del servicio ecommerce |
+| \*     | `/inventory/*` | Todas las rutas del servicio inventario |
+| \*     | `/users/*` | Todas las rutas del servicio usuarios |
 
 **Nota:** Para acceder a rutas protegidas, incluye el header:
+
 ```
 Authorization: Bearer <tu_token_jwt>
 ```
@@ -124,12 +129,6 @@ curl -X GET http://localhost:3000/ecommerce/productos \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-### Health Check
-
-```bash
-curl http://localhost:3000/health
-```
-
 ## ⚙️ Configuración Avanzada
 
 ### Rate Limiting
@@ -147,14 +146,6 @@ Configura los orígenes permitidos en `.env`:
 
 ```env
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,https://tu-frontend.com
-```
-
-### Logging
-
-Niveles disponibles: `error`, `warn`, `info`, `debug`
-
-```env
-LOG_LEVEL=info
 ```
 
 ## 🛠️ Tecnologías
@@ -191,39 +182,3 @@ api_gateway/
 ├── package.json
 └── tsconfig.json
 ```
-
-## 🧪 Testing
-
-```bash
-# Health check
-curl http://localhost:3000/health
-
-# Verificar que el auth service está accesible
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"test"}'
-```
-
-## 🐛 Troubleshooting
-
-### Error: "Missing required environment variables"
-
-Asegúrate de tener un archivo `.env` con todas las variables necesarias. Usa `.env.example` como referencia.
-
-### Error: "Service Unavailable"
-
-Verifica que los microservicios estén corriendo en las URLs configuradas:
-- Auth Service: `AUTH_SERVICE_URL`
-- Ecommerce Service: `ECOMMERCE_SERVICE_URL`
-
-### Error: CORS
-
-Si tienes problemas con CORS, agrega el origen de tu frontend a `ALLOWED_ORIGINS` en el `.env`.
-
-## 📄 Licencia
-
-ISC
-
-## 👥 Autor
-
-Tu nombre - [GitHub](https://github.com/julinuzzo19)
