@@ -20,4 +20,6 @@ app.listen(config.port, () => {
   console.log(`   POST /auth/login - Login`);
   console.log(`   POST /auth/register - Register`);
   console.log(`   *    /ecommerce/* - Ecommerce service (protected)\n`);
+  console.log(`   *    /inventory/* - Inventory service (protected)\n`);
+  console.log(`   *    /user/* - User service (protected)\n`);
 });

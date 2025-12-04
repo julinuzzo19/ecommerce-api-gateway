@@ -2,6 +2,7 @@ interface ServiceConfig {
   auth: string;
   ecommerce: string;
   inventory: string;
+  users: string;
 }
 
 interface Config {
@@ -26,12 +27,13 @@ interface Config {
 function validateConfig(): Config {
   // Lista de variables de entorno requeridas
   const requiredVars = [
-    "AUTH_SERVICE_URL",
-    "INVENTORY_SERVICE_URL",
-    "ECOMMERCE_SERVICE_URL",
-    "GATEWAY_SECRET",
-    "PORT",
-    "NODE_ENV",
+    'AUTH_SERVICE_URL',
+    'INVENTORY_SERVICE_URL',
+    'USER_SERVICE_URL',
+    'ECOMMERCE_SERVICE_URL',
+    'GATEWAY_SECRET',
+    'PORT',
+    'NODE_ENV',
   ];
 
   // Verificar que todas las variables requeridas están presentes
@@ -39,42 +41,43 @@ function validateConfig(): Config {
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing required environment variables: ${missing.join(", ")}\n` +
-        `Please check your .env file and ensure all required variables are set.`
+      `Missing required environment variables: ${missing.join(', ')}\n` +
+        `Please check your .env file and ensure all required variables are set.`,
     );
   }
 
   // Parsear y validar los valores
-  const port = parseInt(process.env.PORT || "3000", 10);
+  const port = parseInt(process.env.PORT || '3000', 10);
   if (isNaN(port) || port < 1 || port > 65535) {
     throw new Error(
-      `Invalid PORT value: ${process.env.PORT}. Must be a number between 1 and 65535.`
+      `Invalid PORT value: ${process.env.PORT}. Must be a number between 1 and 65535.`,
     );
   }
 
   // Construir el objeto de configuración con valores validados
   return {
     port,
-    nodeEnv: process.env.NODE_ENV || "development",
+    nodeEnv: process.env.NODE_ENV || 'development',
     services: {
       auth: process.env.AUTH_SERVICE_URL!,
       ecommerce: process.env.ECOMMERCE_SERVICE_URL!,
       inventory: process.env.INVENTORY_SERVICE_URL!,
+      users: process.env.USER_SERVICE_URL!,
     },
     security: {
       gatewaySecret: process.env.GATEWAY_SECRET!,
     },
     rateLimit: {
-      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000", 10),
-      maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100", 10),
+      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
+      maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
     },
     cors: {
-      allowedOrigins: process.env.ALLOWED_ORIGINS?.split(",") || [
-        "http://localhost:3000",
+      allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [
+        'http://localhost:3000',
       ],
     },
     logging: {
-      level: process.env.LOG_LEVEL || "info",
+      level: process.env.LOG_LEVEL || 'info',
     },
   };
 }
@@ -84,7 +87,7 @@ function validateConfig(): Config {
 export const config = validateConfig();
 
 // Logging de la configuración al iniciar (sin mostrar secrets)
-console.log("API Gateway Configuration:", {
+console.log('API Gateway Configuration:', {
   port: config.port,
   nodeEnv: config.nodeEnv,
   services: config.services,

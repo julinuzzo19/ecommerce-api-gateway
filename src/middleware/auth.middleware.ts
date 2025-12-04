@@ -57,8 +57,6 @@ export async function authMiddleware(
     // 1. Intentar autenticación por x-gateway-secret (servicios internos)
     const gatewaySecret = req.headers['x-gateway-secret'] as string | undefined;
 
-    console.log({ gatewaySecret });
-
     if (gatewaySecret) {
       if (gatewaySecret === config.security.gatewaySecret) {
         logger.debug('Internal service authentication successful', {
@@ -80,8 +78,6 @@ export async function authMiddleware(
 
     // 2. Intentar autenticación por Bearer token (usuarios)
     const authHeader = req.headers.authorization;
-
-    console.log({ authHeader });
 
     if (!authHeader) {
       logger.warn('No authentication method provided', {
