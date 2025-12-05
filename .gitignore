@@ -2,6 +2,7 @@ node_modules
 dist
 
 TODO.md
+DONE.md
 .env.prod
 .env.dev
 
