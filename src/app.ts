@@ -10,6 +10,10 @@ import { customKeyGenerator } from './utils/customKeyGenerator';
 
 export class App {
   private app: Application;
+  private host: string =
+    process.env.NODE_ENV === 'production'
+      ? process.env.HOST || '0.0.0.0'
+      : '0.0.0.0';
 
   constructor() {
     this.app = express();
@@ -131,6 +135,6 @@ export class App {
   }
 
   public listen(port: number, callback?: () => void): void {
-    this.app.listen(port, callback);
+    this.app.listen(port, this.host, callback);
   }
 }
