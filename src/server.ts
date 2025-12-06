@@ -11,6 +11,8 @@ app.listen(config.port, () => {
     services: {
       auth: config.services.auth,
       ecommerce: config.services.ecommerce,
+      inventory: config.services.inventory,
+      users: config.services.users,
     },
   });
   

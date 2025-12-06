@@ -129,7 +129,7 @@ export async function authMiddleware(
     logger.debug('Validating token with Auth Service');
 
     const response = await axios.get(
-      `${config.services.auth}/api/auth/validate`,
+      `${config.services.auth}/auth/validate`,
       {
         headers: {
           authorization: authHeader,

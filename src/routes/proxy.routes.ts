@@ -20,7 +20,7 @@ router.use(
     changeOrigin: true,
     logger: console,
     pathRewrite: (path, _req) => {
-      const newPath = `/api/auth${path}`;
+      const newPath = `/auth${path}`;
       console.log(`[AUTH] Rewriting: ${path} -> ${newPath}`);
       return newPath;
     },
@@ -40,7 +40,7 @@ router.use(
     changeOrigin: true,
     logger: console,
     pathRewrite: (path, _req) => {
-      const newPath = `/api/v1${path}`;
+      const newPath = `${path}`;
       console.log(`[ECOMMERCE] Rewriting: ${path} -> ${newPath}`);
       return newPath;
     },
@@ -60,7 +60,7 @@ router.use(
     changeOrigin: true,
     logger: console,
     pathRewrite: (path, _req) => {
-      const newPath = `/api/v1/inventory${path}`;
+      const newPath = `/inventory${path}`;
       console.log(`[INVENTORY] Rewriting: ${path} -> ${newPath}`);
       return newPath;
     },
@@ -79,7 +79,7 @@ router.use(
     changeOrigin: true,
     logger: console,
     pathRewrite: (path, _req) => {
-      const newPath = `/api/v1/users${path}`;
+      const newPath = `/users${path}`;
       console.log(`[USERS] Rewriting: ${path} -> ${newPath}`);
       return newPath;
     },
