@@ -128,15 +128,12 @@ export async function authMiddleware(
     // Token no está en caché, validar con Auth Service
     logger.debug('Validating token with Auth Service');
 
-    const response = await axios.get(
-      `${config.services.auth}/auth/validate`,
-      {
-        headers: {
-          authorization: authHeader,
-        },
-        timeout: 5000, // Timeout de 5 segundos para evitar bloqueos largos
+    const response = await axios.get(`${config.services.auth}/auth/validate`, {
+      headers: {
+        authorization: authHeader,
       },
-    );
+      timeout: 5000, // Timeout de 5 segundos para evitar bloqueos largos
+    });
 
     // Verificar la respuesta del Auth Service
     if (!response.data.valid) {

@@ -2,10 +2,12 @@ import express, { Request, Response, NextFunction, Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import { config } from './config/config';
 import { logger } from './utils/logger';
 import proxyRoutes from './routes/proxy.routes';
 import { requestLoggerMiddleware } from './middleware/request.logger.middleware';
+import { cookieToHeaderMiddleware } from './middleware/cookie-to-header.middleware';
 import { customKeyGenerator } from './utils/customKeyGenerator';
 
 export class App {
@@ -19,6 +21,7 @@ export class App {
     this.app = express();
     this.initializeSecurityMiddleware();
     this.initializeParsingMiddleware();
+    this.initializeCookieMiddleware();
     this.initializeLoggingMiddleware();
     this.initializeRoutes();
     this.initializeErrorHandling();
@@ -96,6 +99,14 @@ export class App {
 
     // Parsear URL-encoded bodies
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  }
+
+  private initializeCookieMiddleware(): void {
+    // Parsear cookies
+    this.app.use(cookieParser());
+
+    // Transformar access_token de cookie a header Authorization
+    this.app.use(cookieToHeaderMiddleware);
   }
 
   private initializeLoggingMiddleware(): void {
