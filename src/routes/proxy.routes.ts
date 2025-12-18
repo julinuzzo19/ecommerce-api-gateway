@@ -3,6 +3,10 @@ import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
 import { config } from '../config/config';
 import { logger } from '../utils/logger';
 import { authMiddleware } from '../middleware/auth.middleware';
+import {
+  authRateLimiter,
+  protectedRateLimiter,
+} from '../middleware/rate-limit.middleware';
 
 const router = Router();
 
@@ -15,6 +19,7 @@ router.get('/health', (req, res) => {
 
 router.use(
   '/auth',
+  authRateLimiter,
   createProxyMiddleware({
     target: config.services.auth,
     changeOrigin: true,
@@ -35,6 +40,7 @@ router.use(
 router.use(
   '/ecommerce',
   authMiddleware,
+  protectedRateLimiter,
   createProxyMiddleware({
     target: config.services.ecommerce,
     changeOrigin: true,
@@ -55,6 +61,7 @@ router.use(
 router.use(
   '/inventory',
   authMiddleware,
+  protectedRateLimiter,
   createProxyMiddleware({
     target: config.services.inventory,
     changeOrigin: true,
@@ -74,6 +81,7 @@ router.use(
 router.use(
   '/users',
   authMiddleware,
+  protectedRateLimiter,
   createProxyMiddleware({
     target: config.services.users,
     changeOrigin: true,

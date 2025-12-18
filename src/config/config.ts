@@ -15,6 +15,14 @@ interface Config {
   rateLimit: {
     windowMs: number;
     maxRequests: number;
+    auth: {
+      windowMs: number;
+      maxRequests: number;
+    };
+    protected: {
+      windowMs: number;
+      maxRequests: number;
+    };
   };
   cors: {
     allowedOrigins: string[];
@@ -23,6 +31,24 @@ interface Config {
     level: string;
   };
 }
+
+const RATE_LIMIT_DEFAULTS = {
+  global: {
+    // 15 min / 100 requests
+    windowMs: 15 * 60 * 1000,
+    maxRequests: 100,
+  },
+  auth: {
+    // Auth: 15 min / 20 req
+    windowMs: 15 * 60 * 1000,
+    maxRequests: 20,
+  },
+  protected: {
+    // Protegidas: 1 min / 300 req
+    windowMs: 60 * 1000,
+    maxRequests: 300,
+  },
+} as const;
 
 function validateConfig(): Config {
   // Lista de variables de entorno requeridas
@@ -68,8 +94,16 @@ function validateConfig(): Config {
       gatewaySecret: process.env.GATEWAY_SECRET!,
     },
     rateLimit: {
-      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
-      maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+      windowMs: RATE_LIMIT_DEFAULTS.global.windowMs,
+      maxRequests: RATE_LIMIT_DEFAULTS.global.maxRequests,
+      auth: {
+        windowMs: RATE_LIMIT_DEFAULTS.auth.windowMs,
+        maxRequests: RATE_LIMIT_DEFAULTS.auth.maxRequests,
+      },
+      protected: {
+        windowMs: RATE_LIMIT_DEFAULTS.protected.windowMs,
+        maxRequests: RATE_LIMIT_DEFAULTS.protected.maxRequests,
+      },
     },
     cors: {
       allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [

@@ -1,14 +1,14 @@
 import express, { Request, Response, NextFunction, Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { config } from './config/config';
 import { logger } from './utils/logger';
 import proxyRoutes from './routes/proxy.routes';
 import { requestLoggerMiddleware } from './middleware/request.logger.middleware';
 import { cookieToHeaderMiddleware } from './middleware/cookie-to-header.middleware';
-import { customKeyGenerator } from './utils/customKeyGenerator';
+import { requestIdMiddleware } from './middleware/request-id.middleware';
+import { globalRateLimiter } from './middleware/rate-limit.middleware';
 
 export class App {
   private app: Application;
@@ -19,7 +19,10 @@ export class App {
 
   constructor() {
     this.app = express();
+    this.initializeProxyTrust();
     this.initializeSecurityMiddleware();
+    this.initializeRequestIdMiddleware();
+    this.initializeRateLimitingMiddleware();
     this.initializeParsingMiddleware();
     this.initializeCookieMiddleware();
     this.initializeLoggingMiddleware();
@@ -60,37 +63,24 @@ export class App {
       }),
     );
 
-    // Rate limiting global - prevenir ataques de fuerza bruta
-    const limiter = rateLimit({
-      windowMs: config.rateLimit.windowMs,
-      max: config.rateLimit.maxRequests,
-      message: {
-        error: 'Too Many Requests',
-        message: `Too many requests from this IP, please try again after ${
-          config.rateLimit.windowMs / 60000
-        } minutes.`,
-      },
-      standardHeaders: true, // Retornar info de rate limit en headers RateLimit-*
-      legacyHeaders: false, // Desactivar headers X-RateLimit-*
-      // Función personalizada para generar la key (por defecto usa IP)
-      keyGenerator: customKeyGenerator,
-      // Función que se ejecuta cuando se alcanza el límite
-      handler: (req, res) => {
-        logger.warn('Rate limit exceeded', {
-          ip: req.ip,
-          userId: req.user?.id,
-          path: req.path,
-        });
+    // Nota: el rate limiting se inicializa en un middleware dedicado para poder
+    // inyectar `x-request-id` antes y reutilizar limiters por ruta.
+  }
 
-        res.status(429).json({
-          error: 'Too Many Requests',
-          message: 'You have exceeded the rate limit. Please try again later.',
-          retryAfter: Math.ceil(config.rateLimit.windowMs / 1000),
-        });
-      },
-    });
+  private initializeProxyTrust(): void {
+    // Si el gateway está detrás de un proxy (Nginx/Ingress/ALB), en producción
+    // necesitamos confiar en el primer proxy para que `req.ip` sea correcto.
+    if (config.nodeEnv === 'production') {
+      this.app.set('trust proxy', 1);
+    }
+  }
 
-    this.app.use(limiter);
+  private initializeRequestIdMiddleware(): void {
+    this.app.use(requestIdMiddleware);
+  }
+
+  private initializeRateLimitingMiddleware(): void {
+    this.app.use(globalRateLimiter);
   }
 
   private initializeParsingMiddleware(): void {
