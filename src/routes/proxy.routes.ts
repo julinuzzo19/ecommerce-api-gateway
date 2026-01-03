@@ -7,6 +7,8 @@ import {
   authRateLimiter,
   protectedRateLimiter,
 } from '../middleware/rate-limit.middleware';
+import { stripSensitiveResponseHeaders } from '../utils/stripSensitiveResponseHeaders';
+import { createUsersLambdaProxyHandler } from './users.lambda.routes';
 
 const router = Router();
 
@@ -31,6 +33,9 @@ router.use(
     },
     on: {
       proxyReq: fixRequestBody, // Fix para reenviar el body correctamente
+      proxyRes: (proxyRes, req, res) => {
+        stripSensitiveResponseHeaders(proxyRes, req);
+      },
     },
   }),
 );
@@ -78,24 +83,39 @@ router.use(
 );
 /** Proxy Users */
 
-router.use(
-  '/users',
-  authMiddleware,
-  protectedRateLimiter,
-  createProxyMiddleware({
-    target: config.services.users,
-    changeOrigin: true,
-    logger: console,
-    pathRewrite: (path, _req) => {
-      const newPath = `/users${path}`;
-      console.log(`[USERS] Rewriting: ${path} -> ${newPath}`);
-      return newPath;
-    },
-    on: {
-      proxyReq: fixRequestBody, // Fix para reenviar el body correctamente
-    },
-  }),
-);
+if (config.serverless.users.mode === 'offline') {
+  router.use(
+    '/users',
+    // authMiddleware,
+    // protectedRateLimiter,
+    createProxyMiddleware({
+      target: config.serverless.users.offlineBaseUrl!,
+      changeOrigin: true,
+      logger: console,
+      pathRewrite: (path) => {
+        // Cuando el router está montado en /users, `path` llega como '/'
+        // pero el serverless-offline expone rutas como '/users'.
+        const suffix = path === '/' ? '' : path;
+
+        console.log({suffix})
+        return `/users${suffix}`;
+      },
+      on: {
+        proxyReq: fixRequestBody,
+        proxyRes: (proxyRes, req) => {
+          stripSensitiveResponseHeaders(proxyRes, req);
+        },
+      },
+    }),
+  );
+} else {
+  router.use(
+    '/users',
+    authMiddleware,
+    protectedRateLimiter,
+    createUsersLambdaProxyHandler(),
+  );
+}
 
 // Catch-all para rutas no encontradas (al final)
 router.use((req, res) => {

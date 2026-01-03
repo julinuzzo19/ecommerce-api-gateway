@@ -2,13 +2,32 @@ interface ServiceConfig {
   auth: string;
   ecommerce: string;
   inventory: string;
-  users: string;
+  users?: string;
+}
+
+interface ServerlessConfig {
+  users: {
+    mode: 'aws' | 'offline';
+    /** Requerido si mode=aws. Nombre o ARN de la Lambda. */
+    lambdaFunctionName?: string;
+    /** Requerido si mode=offline. Base URL de serverless-offline. */
+    offlineBaseUrl?: string;
+    /** Mapping de rutas a funciones en serverless-offline (invocations). */
+    functions: {
+      createUser: string;
+      getUserById: string;
+      getUserByEmail: string;
+      listUsers: string;
+      updateUser: string;
+    };
+  };
 }
 
 interface Config {
   port: number;
   nodeEnv: string;
   services: ServiceConfig;
+  serverless: ServerlessConfig;
   security: {
     gatewaySecret: string;
   };
@@ -55,7 +74,6 @@ function validateConfig(): Config {
   const requiredVars = [
     'AUTH_SERVICE_URL',
     'INVENTORY_SERVICE_URL',
-    'USER_SERVICE_URL',
     'ECOMMERCE_SERVICE_URL',
     'GATEWAY_SECRET',
     'PORT',
@@ -80,6 +98,25 @@ function validateConfig(): Config {
     );
   }
 
+  const usersOfflineBaseUrl = process.env.USERS_SERVERLESS_OFFLINE_URL;
+  const usersLambdaFunctionName = process.env.USERS_LAMBDA_FUNCTION_NAME;
+
+  const usersMode: 'aws' | 'offline' = usersOfflineBaseUrl ? 'offline' : 'aws';
+
+  if (usersMode === 'aws' && !usersLambdaFunctionName) {
+    throw new Error(
+      'Missing required environment variable: USERS_LAMBDA_FUNCTION_NAME\n' +
+        'Set it to the Lambda function name or ARN that implements the Users service, or set USERS_SERVERLESS_OFFLINE_URL for local offline mode.',
+    );
+  }
+
+  if (usersMode === 'offline' && !usersOfflineBaseUrl) {
+    throw new Error(
+      'Missing required environment variable: USERS_SERVERLESS_OFFLINE_URL\n' +
+        'Set it to the base URL where serverless-offline is listening (e.g. http://localhost:4000).',
+    );
+  }
+
   // Construir el objeto de configuración con valores validados
   return {
     port,
@@ -88,7 +125,23 @@ function validateConfig(): Config {
       auth: process.env.AUTH_SERVICE_URL!,
       ecommerce: process.env.ECOMMERCE_SERVICE_URL!,
       inventory: process.env.INVENTORY_SERVICE_URL!,
-      users: process.env.USER_SERVICE_URL!,
+      // Mantener opcional por compatibilidad si aún se usa un Users HTTP service.
+      users: process.env.USER_SERVICE_URL,
+    },
+    serverless: {
+      users: {
+        mode: usersMode,
+        lambdaFunctionName: usersLambdaFunctionName,
+        offlineBaseUrl: usersOfflineBaseUrl,
+        functions: {
+          createUser: process.env.USERS_FN_CREATE_USER || 'createUser',
+          getUserById: process.env.USERS_FN_GET_USER_BY_ID || 'getUserById',
+          getUserByEmail:
+            process.env.USERS_FN_GET_USER_BY_EMAIL || 'getUserByEmail',
+          listUsers: process.env.USERS_FN_LIST_USERS || 'listUsers',
+          updateUser: process.env.USERS_FN_UPDATE_USER || 'updateUser',
+        },
+      },
     },
     security: {
       gatewaySecret: process.env.GATEWAY_SECRET!,
