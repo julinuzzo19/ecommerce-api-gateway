@@ -7,11 +7,11 @@ interface ServiceConfig {
 
 interface ServerlessConfig {
   users: {
-    mode: 'aws' | 'offline';
-    /** Requerido si mode=aws. Nombre o ARN de la Lambda. */
-    lambdaFunctionName?: string;
+    mode: 'offline' | 'http';
     /** Requerido si mode=offline. Base URL de serverless-offline. */
     offlineBaseUrl?: string;
+    /** Requerido si mode=http. Base URL del HTTP API (API Gateway) del servicio Users. */
+    httpApiBaseUrl?: string;
     /** Mapping de rutas a funciones en serverless-offline (invocations). */
     functions: {
       createUser: string;
@@ -99,21 +99,29 @@ function validateConfig(): Config {
   }
 
   const usersOfflineBaseUrl = process.env.USERS_SERVERLESS_OFFLINE_URL;
-  const usersLambdaFunctionName = process.env.USERS_LAMBDA_FUNCTION_NAME;
+  const usersHttpApiBaseUrl = process.env.USERS_HTTP_API_BASE_URL;
 
-  const usersMode: 'aws' | 'offline' = usersOfflineBaseUrl ? 'offline' : 'aws';
-
-  if (usersMode === 'aws' && !usersLambdaFunctionName) {
-    throw new Error(
-      'Missing required environment variable: USERS_LAMBDA_FUNCTION_NAME\n' +
-        'Set it to the Lambda function name or ARN that implements the Users service, or set USERS_SERVERLESS_OFFLINE_URL for local offline mode.',
-    );
-  }
+  const usersMode: 'offline' | 'http' = usersOfflineBaseUrl
+    ? 'offline'
+    : usersHttpApiBaseUrl
+      ? 'http'
+      : (() => {
+        throw new Error(
+          'Missing Users configuration: set USERS_HTTP_API_BASE_URL or USERS_SERVERLESS_OFFLINE_URL in your .env',
+        );
+      })();
 
   if (usersMode === 'offline' && !usersOfflineBaseUrl) {
     throw new Error(
       'Missing required environment variable: USERS_SERVERLESS_OFFLINE_URL\n' +
         'Set it to the base URL where serverless-offline is listening (e.g. http://localhost:4000).',
+    );
+  }
+
+  if (usersMode === 'http' && !usersHttpApiBaseUrl) {
+    throw new Error(
+      'Missing required environment variable: USERS_HTTP_API_BASE_URL\n' +
+        'Set it to the base URL of the Users HTTP API (e.g. https://<id>.execute-api.<region>.amazonaws.com).',
     );
   }
 
@@ -131,8 +139,8 @@ function validateConfig(): Config {
     serverless: {
       users: {
         mode: usersMode,
-        lambdaFunctionName: usersLambdaFunctionName,
         offlineBaseUrl: usersOfflineBaseUrl,
+        httpApiBaseUrl: usersHttpApiBaseUrl,
         functions: {
           createUser: process.env.USERS_FN_CREATE_USER || 'createUser',
           getUserById: process.env.USERS_FN_GET_USER_BY_ID || 'getUserById',

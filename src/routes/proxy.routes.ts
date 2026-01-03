@@ -8,7 +8,6 @@ import {
   protectedRateLimiter,
 } from '../middleware/rate-limit.middleware';
 import { stripSensitiveResponseHeaders } from '../utils/stripSensitiveResponseHeaders';
-import { createUsersLambdaProxyHandler } from './users.lambda.routes';
 
 const router = Router();
 
@@ -97,7 +96,7 @@ if (config.serverless.users.mode === 'offline') {
         // pero el serverless-offline expone rutas como '/users'.
         const suffix = path === '/' ? '' : path;
 
-        console.log({suffix})
+        console.log({ suffix });
         return `/users${suffix}`;
       },
       on: {
@@ -111,9 +110,43 @@ if (config.serverless.users.mode === 'offline') {
 } else {
   router.use(
     '/users',
-    authMiddleware,
-    protectedRateLimiter,
-    createUsersLambdaProxyHandler(),
+    // authMiddleware,
+    // protectedRateLimiter,
+    createProxyMiddleware({
+      target: config.serverless.users.httpApiBaseUrl!,
+      changeOrigin: true,
+      logger: console,
+      pathRewrite: (path) => {
+        const suffix = path === '/' ? '' : path;
+
+        return `/users${suffix}`;
+      },
+      on: {
+        proxyReq: fixRequestBody,
+        proxyRes: (proxyRes, req) => {
+          stripSensitiveResponseHeaders(proxyRes, req);
+
+          const statusCode = proxyRes.statusCode ?? 0;
+          if (statusCode >= 500) {
+            logger.error('Users HTTP API returned 5xx', {
+              statusCode,
+              path: req.url,
+              method: req.method,
+              amznRequestId: proxyRes.headers?.['x-amzn-requestid'],
+              amznErrorType: proxyRes.headers?.['x-amzn-errortype'],
+              apiId: proxyRes.headers?.['apigw-requestid'],
+            });
+          }
+        },
+        error: (error, req) => {
+          logger.error('Error proxying Users HTTP API', {
+            error: error instanceof Error ? error.message : String(error),
+            path: req.url,
+            method: req.method,
+          });
+        },
+      },
+    }),
   );
 }
 

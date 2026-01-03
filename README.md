@@ -54,6 +54,9 @@ AUTH_SERVICE_URL=http://localhost:3001
 ECOMMERCE_SERVICE_URL=http://localhost:3002
 GATEWAY_SECRET=tu_secreto_super_seguro_aqui
 JWT_SECRET=tu_jwt_secret_super_seguro_aqui
+
+# USERS (si está desplegado en AWS detrás de HTTP API)
+USERS_HTTP_API_BASE_URL=https://<id>.execute-api.<region>.amazonaws.com
 ```
 
 ### 3. Ejecutar en desarrollo
