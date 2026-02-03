@@ -96,7 +96,6 @@ if (config.serverless.users.mode === 'offline') {
         // pero el serverless-offline expone rutas como '/users'.
         const suffix = path === '/' ? '' : path;
 
-        console.log({ suffix });
         return `/users${suffix}`;
       },
       on: {
