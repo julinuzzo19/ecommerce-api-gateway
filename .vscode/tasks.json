@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Docker Logs: API Gateway",
+      "type": "shell",
+      "command": "docker logs -f ecommerce-api-gateway",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "logs",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    }
+  ]
+}
