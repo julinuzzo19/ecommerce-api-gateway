@@ -7,8 +7,8 @@
       "command": "docker logs -f ecommerce-api-gateway",
       "presentation": {
         "reveal": "always",
-        "panel": "dedicated",
-        "group": "logs",
+        "panel": "shared",
+        "focus": true,
         "showReuseMessage": false,
         "clear": true
       },
