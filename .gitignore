@@ -1,13 +1,8 @@
 node_modules
 dist
-
 TODO.md
 DONE.md
 .env.prod
 .env.dev
-
 .env
-
 .github
-
-pagage-lock.json
