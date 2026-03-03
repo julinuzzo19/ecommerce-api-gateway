@@ -4,6 +4,7 @@
   "main": "src/server.ts",
   "scripts": {
     "dev": "npx tsx watch --env-file=.env --clear-screen=false src/server.ts",
+    "debug:docker": "node --import=tsx/esm --inspect=0.0.0.0:9229 --watch src/server.ts",
     "build": "npx tsc",
     "start": "node --env-file=.env dist/src/server.js",
     "clean": "rimraf dist",
