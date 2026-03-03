@@ -14,21 +14,20 @@ const developmentFormat = winston.format.combine(
     }
 
     return msg;
-  })
+  }),
 );
 
 // Formato para production que es más estructurado y fácil de parsear
 const productionFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.errors({ stack: true }),
-  winston.format.json()
+  winston.format.json(),
 );
 
 // Crear el logger con configuración diferente según el ambiente
 export const logger = winston.createLogger({
   level: config.logging.level,
-  format:
-    config.nodeEnv === "production" ? productionFormat : developmentFormat,
+  format: config.nodeEnv === "production" ? productionFormat : developmentFormat,
   defaultMeta: {
     service: "api-gateway",
     environment: config.nodeEnv,

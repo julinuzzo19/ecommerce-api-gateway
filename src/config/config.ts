@@ -7,7 +7,7 @@ interface ServiceConfig {
 
 interface ServerlessConfig {
   users: {
-    mode: 'offline' | 'http';
+    mode: "offline" | "http";
     /** Requerido si mode=offline. Base URL de serverless-offline. */
     offlineBaseUrl?: string;
     /** Requerido si mode=http. Base URL del HTTP API (API Gateway) del servicio Users. */
@@ -72,12 +72,12 @@ const RATE_LIMIT_DEFAULTS = {
 function validateConfig(): Config {
   // Lista de variables de entorno requeridas
   const requiredVars = [
-    'AUTH_SERVICE_URL',
-    'INVENTORY_SERVICE_URL',
-    'ECOMMERCE_SERVICE_URL',
-    'GATEWAY_SECRET',
-    'PORT',
-    'NODE_ENV',
+    "AUTH_SERVICE_URL",
+    "INVENTORY_SERVICE_URL",
+    "ECOMMERCE_SERVICE_URL",
+    "GATEWAY_SECRET",
+    "PORT",
+    "NODE_ENV",
   ];
 
   // Verificar que todas las variables requeridas están presentes
@@ -85,50 +85,48 @@ function validateConfig(): Config {
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}\n` +
+      `Missing required environment variables: ${missing.join(", ")}\n` +
         `Please check your .env file and ensure all required variables are set.`,
     );
   }
 
   // Parsear y validar los valores
-  const port = parseInt(process.env.PORT || '3000', 10);
+  const port = parseInt(process.env.PORT || "3000", 10);
   if (isNaN(port) || port < 1 || port > 65535) {
-    throw new Error(
-      `Invalid PORT value: ${process.env.PORT}. Must be a number between 1 and 65535.`,
-    );
+    throw new Error(`Invalid PORT value: ${process.env.PORT}. Must be a number between 1 and 65535.`);
   }
 
   const usersOfflineBaseUrl = process.env.USERS_SERVERLESS_OFFLINE_URL;
   const usersHttpApiBaseUrl = process.env.USERS_HTTP_API_BASE_URL;
 
-  const usersMode: 'offline' | 'http' = usersOfflineBaseUrl
-    ? 'offline'
+  const usersMode: "offline" | "http" = usersOfflineBaseUrl
+    ? "offline"
     : usersHttpApiBaseUrl
-      ? 'http'
+      ? "http"
       : (() => {
-        throw new Error(
-          'Missing Users configuration: set USERS_HTTP_API_BASE_URL or USERS_SERVERLESS_OFFLINE_URL in your .env',
-        );
-      })();
+          throw new Error(
+            "Missing Users configuration: set USERS_HTTP_API_BASE_URL or USERS_SERVERLESS_OFFLINE_URL in your .env",
+          );
+        })();
 
-  if (usersMode === 'offline' && !usersOfflineBaseUrl) {
+  if (usersMode === "offline" && !usersOfflineBaseUrl) {
     throw new Error(
-      'Missing required environment variable: USERS_SERVERLESS_OFFLINE_URL\n' +
-        'Set it to the base URL where serverless-offline is listening (e.g. http://localhost:4000).',
+      "Missing required environment variable: USERS_SERVERLESS_OFFLINE_URL\n" +
+        "Set it to the base URL where serverless-offline is listening (e.g. http://localhost:4000).",
     );
   }
 
-  if (usersMode === 'http' && !usersHttpApiBaseUrl) {
+  if (usersMode === "http" && !usersHttpApiBaseUrl) {
     throw new Error(
-      'Missing required environment variable: USERS_HTTP_API_BASE_URL\n' +
-        'Set it to the base URL of the Users HTTP API (e.g. https://<id>.execute-api.<region>.amazonaws.com).',
+      "Missing required environment variable: USERS_HTTP_API_BASE_URL\n" +
+        "Set it to the base URL of the Users HTTP API (e.g. https://<id>.execute-api.<region>.amazonaws.com).",
     );
   }
 
   // Construir el objeto de configuración con valores validados
   return {
     port,
-    nodeEnv: process.env.NODE_ENV || 'development',
+    nodeEnv: process.env.NODE_ENV || "development",
     services: {
       auth: process.env.AUTH_SERVICE_URL!,
       ecommerce: process.env.ECOMMERCE_SERVICE_URL!,
@@ -142,12 +140,11 @@ function validateConfig(): Config {
         offlineBaseUrl: usersOfflineBaseUrl,
         httpApiBaseUrl: usersHttpApiBaseUrl,
         functions: {
-          createUser: process.env.USERS_FN_CREATE_USER || 'createUser',
-          getUserById: process.env.USERS_FN_GET_USER_BY_ID || 'getUserById',
-          getUserByEmail:
-            process.env.USERS_FN_GET_USER_BY_EMAIL || 'getUserByEmail',
-          listUsers: process.env.USERS_FN_LIST_USERS || 'listUsers',
-          updateUser: process.env.USERS_FN_UPDATE_USER || 'updateUser',
+          createUser: process.env.USERS_FN_CREATE_USER || "createUser",
+          getUserById: process.env.USERS_FN_GET_USER_BY_ID || "getUserById",
+          getUserByEmail: process.env.USERS_FN_GET_USER_BY_EMAIL || "getUserByEmail",
+          listUsers: process.env.USERS_FN_LIST_USERS || "listUsers",
+          updateUser: process.env.USERS_FN_UPDATE_USER || "updateUser",
         },
       },
     },
@@ -167,12 +164,10 @@ function validateConfig(): Config {
       },
     },
     cors: {
-      allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [
-        'http://localhost:3000',
-      ],
+      allowedOrigins: process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:3000"],
     },
     logging: {
-      level: process.env.LOG_LEVEL || 'info',
+      level: process.env.LOG_LEVEL || "info",
     },
   };
 }
@@ -182,7 +177,7 @@ function validateConfig(): Config {
 export const config = validateConfig();
 
 // Logging de la configuración al iniciar (sin mostrar secrets)
-console.log('API Gateway Configuration:', {
+console.log("API Gateway Configuration:", {
   port: config.port,
   nodeEnv: config.nodeEnv,
   services: config.services,

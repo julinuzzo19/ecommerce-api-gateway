@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import axios, { AxiosError } from 'axios';
-import { config } from '../config/config';
-import { logger } from '../utils/logger';
+import { Request, Response, NextFunction } from "express";
+import axios, { AxiosError } from "axios";
+import { config } from "../config/config";
+import { logger } from "../utils/logger";
 
 // Interfaz para tipar la información del usuario
 interface UserInfo {
@@ -46,20 +46,16 @@ setInterval(() => {
   }
 }, 60000);
 
-export async function authMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
   const startTime = Date.now();
 
   try {
     // 1. Intentar autenticación por x-gateway-secret (servicios internos)
-    const gatewaySecret = req.headers['x-gateway-secret'] as string | undefined;
+    const gatewaySecret = req.headers["x-gateway-secret"] as string | undefined;
 
     if (gatewaySecret) {
       if (gatewaySecret === config.security.gatewaySecret) {
-        logger.debug('Internal service authentication successful', {
+        logger.debug("Internal service authentication successful", {
           path: req.path,
           method: req.method,
         });
@@ -68,7 +64,7 @@ export async function authMiddleware(
         next();
         return;
       } else {
-        logger.warn('Invalid x-gateway-secret provided', {
+        logger.warn("Invalid x-gateway-secret provided", {
           path: req.path,
           method: req.method,
         });
@@ -80,45 +76,45 @@ export async function authMiddleware(
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      logger.warn('No authentication method provided', {
+      logger.warn("No authentication method provided", {
         path: req.path,
         method: req.method,
         ip: req.ip,
       });
 
       res.status(401).json({
-        error: 'Unauthorized',
+        error: "Unauthorized",
         message:
-          'Authentication required. Provide either Authorization Bearer token or x-gateway-secret header.',
+          "Authentication required. Provide either Authorization Bearer token or x-gateway-secret header.",
       });
       return;
     }
 
-    if (!authHeader.startsWith('Bearer ')) {
-      logger.warn('Invalid Authorization header format', {
+    if (!authHeader.startsWith("Bearer ")) {
+      logger.warn("Invalid Authorization header format", {
         path: req.path,
         method: req.method,
       });
 
       res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Authorization header must be in format: Bearer <token>',
+        error: "Unauthorized",
+        message: "Authorization header must be in format: Bearer <token>",
       });
       return;
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace("Bearer ", "");
 
     // Verificar si el token está en caché y todavía es válido
     const cached = tokenCache.get(token);
     if (cached && cached.expiry > Date.now()) {
-      logger.debug('Token found in cache', { userId: cached.user.id });
+      logger.debug("Token found in cache", { userId: cached.user.id });
 
       // Setear headers para los microservicios
-      req.headers['x-user-id'] = cached.user.id;
-      req.headers['x-user-email'] = cached.user.email;
-      req.headers['x-user-role'] = cached.user.role;
-      req.headers['x-gateway-secret'] = config.security.gatewaySecret;
+      req.headers["x-user-id"] = cached.user.id;
+      req.headers["x-user-email"] = cached.user.email;
+      req.headers["x-user-role"] = cached.user.role;
+      req.headers["x-gateway-secret"] = config.security.gatewaySecret;
 
       req.user = cached.user;
       next();
@@ -126,7 +122,7 @@ export async function authMiddleware(
     }
 
     // Token no está en caché, validar con Auth Service
-    logger.debug('Validating token with Auth Service');
+    logger.debug("Validating token with Auth Service");
 
     const response = await axios.get(`${config.services.auth}/auth/validate`, {
       headers: {
@@ -137,14 +133,14 @@ export async function authMiddleware(
 
     // Verificar la respuesta del Auth Service
     if (!response.data.valid) {
-      logger.warn('Token validation failed', {
+      logger.warn("Token validation failed", {
         reason: response.data.error,
         path: req.path,
       });
 
       res.status(401).json({
-        error: 'Unauthorized',
-        message: response.data.error || 'Invalid or expired token',
+        error: "Unauthorized",
+        message: response.data.error || "Invalid or expired token",
       });
       return;
     }
@@ -158,17 +154,17 @@ export async function authMiddleware(
       expiry: Date.now() + 5 * 60 * 1000,
     });
 
-    logger.info('Token validated successfully', {
+    logger.info("Token validated successfully", {
       userId: user.id,
       email: user.email,
       duration: `${Date.now() - startTime}ms`,
     });
 
     // Setear headers que los microservicios van a leer
-    req.headers['x-user-id'] = user.id;
-    req.headers['x-user-email'] = user.email;
-    req.headers['x-user-role'] = user.role;
-    req.headers['x-gateway-secret'] = config.security.gatewaySecret;
+    req.headers["x-user-id"] = user.id;
+    req.headers["x-user-email"] = user.email;
+    req.headers["x-user-role"] = user.role;
+    req.headers["x-gateway-secret"] = config.security.gatewaySecret;
 
     // También adjuntar al objeto request para uso local si es necesario
     req.user = user;
@@ -181,59 +177,55 @@ export async function authMiddleware(
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
 
-      if (axiosError.code === 'ECONNREFUSED') {
-        logger.error('Auth Service is unavailable', {
+      if (axiosError.code === "ECONNREFUSED") {
+        logger.error("Auth Service is unavailable", {
           url: config.services.auth,
           duration: `${duration}ms`,
         });
 
         res.status(503).json({
-          error: 'Service Unavailable',
-          message:
-            'Authentication service is temporarily unavailable. Please try again later.',
+          error: "Service Unavailable",
+          message: "Authentication service is temporarily unavailable. Please try again later.",
         });
         return;
       }
 
       if (axiosError.response?.status === 401) {
-        logger.warn('Token rejected by Auth Service', {
+        logger.warn("Token rejected by Auth Service", {
           status: axiosError.response.status,
           duration: `${duration}ms`,
         });
 
         res.status(401).json({
-          error: 'Unauthorized',
-          message: 'Invalid or expired token',
+          error: "Unauthorized",
+          message: "Invalid or expired token",
         });
         return;
       }
 
-      if (
-        axiosError.code === 'ETIMEDOUT' ||
-        axiosError.code === 'ECONNABORTED'
-      ) {
-        logger.error('Auth Service timeout', {
+      if (axiosError.code === "ETIMEDOUT" || axiosError.code === "ECONNABORTED") {
+        logger.error("Auth Service timeout", {
           duration: `${duration}ms`,
         });
 
         res.status(504).json({
-          error: 'Gateway Timeout',
-          message: 'Authentication service took too long to respond',
+          error: "Gateway Timeout",
+          message: "Authentication service took too long to respond",
         });
         return;
       }
     }
 
     // Error genérico no manejado específicamente
-    logger.error('Unexpected error in auth middleware', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    logger.error("Unexpected error in auth middleware", {
+      error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
       duration: `${duration}ms`,
     });
 
     res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'An unexpected error occurred during authentication',
+      error: "Internal Server Error",
+      message: "An unexpected error occurred during authentication",
     });
   }
 }

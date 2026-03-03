@@ -1,25 +1,22 @@
-import { Router } from 'express';
-import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
-import { config } from '../config/config';
-import { logger } from '../utils/logger';
-import { authMiddleware } from '../middleware/auth.middleware';
-import {
-  authRateLimiter,
-  protectedRateLimiter,
-} from '../middleware/rate-limit.middleware';
-import { stripSensitiveResponseHeaders } from '../utils/stripSensitiveResponseHeaders';
+import { Router } from "express";
+import { createProxyMiddleware, fixRequestBody } from "http-proxy-middleware";
+import { config } from "../config/config";
+import { logger } from "../utils/logger";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { authRateLimiter, protectedRateLimiter } from "../middleware/rate-limit.middleware";
+import { stripSensitiveResponseHeaders } from "../utils/stripSensitiveResponseHeaders";
 
 const router = Router();
 
 /** Health check endpoint */
-router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+router.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
 /** Proxy Authentication */
 
 router.use(
-  '/auth',
+  "/auth",
   authRateLimiter,
   createProxyMiddleware({
     target: config.services.auth,
@@ -42,7 +39,7 @@ router.use(
 /** Proxy Ecommerce */
 
 router.use(
-  '/ecommerce',
+  "/ecommerce",
   authMiddleware,
   protectedRateLimiter,
   createProxyMiddleware({
@@ -63,7 +60,7 @@ router.use(
 /** Proxy Inventory */
 
 router.use(
-  '/inventory',
+  "/inventory",
   authMiddleware,
   protectedRateLimiter,
   createProxyMiddleware({
@@ -82,9 +79,9 @@ router.use(
 );
 /** Proxy Users */
 
-if (config.serverless.users.mode === 'offline') {
+if (config.serverless.users.mode === "offline") {
   router.use(
-    '/users',
+    "/users",
     // authMiddleware,
     // protectedRateLimiter,
     createProxyMiddleware({
@@ -94,7 +91,7 @@ if (config.serverless.users.mode === 'offline') {
       pathRewrite: (path) => {
         // Cuando el router está montado en /users, `path` llega como '/'
         // pero el serverless-offline expone rutas como '/users'.
-        const suffix = path === '/' ? '' : path;
+        const suffix = path === "/" ? "" : path;
 
         return `/users${suffix}`;
       },
@@ -108,7 +105,7 @@ if (config.serverless.users.mode === 'offline') {
   );
 } else {
   router.use(
-    '/users',
+    "/users",
     // authMiddleware,
     // protectedRateLimiter,
     createProxyMiddleware({
@@ -116,7 +113,7 @@ if (config.serverless.users.mode === 'offline') {
       changeOrigin: true,
       logger: console,
       pathRewrite: (path) => {
-        const suffix = path === '/' ? '' : path;
+        const suffix = path === "/" ? "" : path;
 
         return `/users${suffix}`;
       },
@@ -127,18 +124,18 @@ if (config.serverless.users.mode === 'offline') {
 
           const statusCode = proxyRes.statusCode ?? 0;
           if (statusCode >= 500) {
-            logger.error('Users HTTP API returned 5xx', {
+            logger.error("Users HTTP API returned 5xx", {
               statusCode,
               path: req.url,
               method: req.method,
-              amznRequestId: proxyRes.headers?.['x-amzn-requestid'],
-              amznErrorType: proxyRes.headers?.['x-amzn-errortype'],
-              apiId: proxyRes.headers?.['apigw-requestid'],
+              amznRequestId: proxyRes.headers?.["x-amzn-requestid"],
+              amznErrorType: proxyRes.headers?.["x-amzn-errortype"],
+              apiId: proxyRes.headers?.["apigw-requestid"],
             });
           }
         },
         error: (error, req) => {
-          logger.error('Error proxying Users HTTP API', {
+          logger.error("Error proxying Users HTTP API", {
             error: error instanceof Error ? error.message : String(error),
             path: req.url,
             method: req.method,
@@ -151,13 +148,13 @@ if (config.serverless.users.mode === 'offline') {
 
 // Catch-all para rutas no encontradas (al final)
 router.use((req, res) => {
-  logger.warn('Route not found', {
+  logger.warn("Route not found", {
     path: req.originalUrl,
     method: req.method,
   });
 
   res.status(404).json({
-    error: 'Not Found',
+    error: "Not Found",
     message: `El endpoint ${req.method} ${req.originalUrl} no existe`,
   });
 });

@@ -1,21 +1,18 @@
-import express, { Request, Response, NextFunction, Application } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
-import { config } from './config/config';
-import { logger } from './utils/logger';
-import proxyRoutes from './routes/proxy.routes';
-import { requestLoggerMiddleware } from './middleware/request.logger.middleware';
-import { cookieToHeaderMiddleware } from './middleware/cookie-to-header.middleware';
-import { requestIdMiddleware } from './middleware/request-id.middleware';
-import { globalRateLimiter } from './middleware/rate-limit.middleware';
+import express, { Request, Response, NextFunction, Application } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
+import { config } from "./config/config";
+import { logger } from "./utils/logger";
+import proxyRoutes from "./routes/proxy.routes";
+import { requestLoggerMiddleware } from "./middleware/request.logger.middleware";
+import { cookieToHeaderMiddleware } from "./middleware/cookie-to-header.middleware";
+import { requestIdMiddleware } from "./middleware/request-id.middleware";
+import { globalRateLimiter } from "./middleware/rate-limit.middleware";
 
 export class App {
   private app: Application;
-  private host: string =
-    process.env.NODE_ENV === 'production'
-      ? process.env.HOST || '0.0.0.0'
-      : '0.0.0.0';
+  private host: string = process.env.NODE_ENV === "production" ? process.env.HOST || "0.0.0.0" : "0.0.0.0";
 
   constructor() {
     this.app = express();
@@ -35,7 +32,7 @@ export class App {
     this.app.use(
       helmet({
         // Configuración personalizada de helmet
-        contentSecurityPolicy: config.nodeEnv === 'production',
+        contentSecurityPolicy: config.nodeEnv === "production",
         crossOriginEmbedderPolicy: false,
       }),
     );
@@ -45,7 +42,7 @@ export class App {
       cors({
         origin: (origin, callback) => {
           // Permitir peticiones sin origin (como Postman, curl, etc.) en desarrollo
-          if (!origin && config.nodeEnv === 'development') {
+          if (!origin && config.nodeEnv === "development") {
             return callback(null, true);
           }
 
@@ -53,13 +50,13 @@ export class App {
           if (!origin || config.cors.allowedOrigins.includes(origin)) {
             callback(null, true);
           } else {
-            logger.warn('CORS blocked request', { origin });
-            callback(new Error('Not allowed by CORS'));
+            logger.warn("CORS blocked request", { origin });
+            callback(new Error("Not allowed by CORS"));
           }
         },
         credentials: true, // Permitir cookies y headers de autenticación
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
       }),
     );
 
@@ -70,8 +67,8 @@ export class App {
   private initializeProxyTrust(): void {
     // Si el gateway está detrás de un proxy (Nginx/Ingress/ALB), en producción
     // necesitamos confiar en el primer proxy para que `req.ip` sea correcto.
-    if (config.nodeEnv === 'production') {
-      this.app.set('trust proxy', 1);
+    if (config.nodeEnv === "production") {
+      this.app.set("trust proxy", 1);
     }
   }
 
@@ -85,10 +82,10 @@ export class App {
 
   private initializeParsingMiddleware(): void {
     // Parsear JSON bodies (con límite de tamaño para prevenir ataques)
-    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.json({ limit: "10mb" }));
 
     // Parsear URL-encoded bodies
-    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
   }
 
   private initializeCookieMiddleware(): void {
@@ -105,34 +102,29 @@ export class App {
 
   private initializeRoutes(): void {
     // Todas las rutas están definidas en proxy.routes.ts
-    this.app.use('/', proxyRoutes);
+    this.app.use("/", proxyRoutes);
   }
 
   private initializeErrorHandling(): void {
     // Este middleware captura cualquier error que no fue manejado antes
-    this.app.use(
-      (err: Error, req: Request, res: Response, next: NextFunction) => {
-        logger.error('Unhandled error', {
-          error: err.message,
-          stack: err.stack,
-          path: req.path,
-          method: req.method,
-          requestId: req.headers['x-request-id'],
-        });
+    this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+      logger.error("Unhandled error", {
+        error: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        requestId: req.headers["x-request-id"],
+      });
 
-        // No exponer detalles del error en producción
-        const message =
-          config.nodeEnv === 'production'
-            ? 'An internal server error occurred'
-            : err.message;
+      // No exponer detalles del error en producción
+      const message = config.nodeEnv === "production" ? "An internal server error occurred" : err.message;
 
-        res.status(500).json({
-          error: 'Internal Server Error',
-          message,
-          requestId: req.headers['x-request-id'],
-        });
-      },
-    );
+      res.status(500).json({
+        error: "Internal Server Error",
+        message,
+        requestId: req.headers["x-request-id"],
+      });
+    });
   }
 
   public listen(port: number, callback?: () => void): void {

@@ -1,61 +1,49 @@
-import rateLimit, {
-  type RateLimitRequestHandler,
-  type Options,
-  ipKeyGenerator,
-} from 'express-rate-limit';
-import { config } from '../config/config';
-import { logger } from '../utils/logger';
+import rateLimit, { type RateLimitRequestHandler, type Options, ipKeyGenerator } from "express-rate-limit";
+import { config } from "../config/config";
+import { logger } from "../utils/logger";
 
 /**
  * Normaliza la IP del cliente con un fallback seguro.
  */
-function getClientIp(
-  req: Parameters<NonNullable<Options['keyGenerator']>>[0],
-): string {
-  return req.ip || req.socket?.remoteAddress || 'unknown';
+function getClientIp(req: Parameters<NonNullable<Options["keyGenerator"]>>[0]): string {
+  return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
 /**
  * Devuelve el `x-request-id` ya normalizado (o un fallback).
  */
 function getRequestIdFromHeaders(headers: Record<string, unknown>): string {
-  const value = headers['x-request-id'];
-  return typeof value === 'string' && value.length > 0 ? value : 'unknown';
+  const value = headers["x-request-id"];
+  return typeof value === "string" && value.length > 0 ? value : "unknown";
 }
 
 /**
  * Crea un rate limiter con handler consistente para el API Gateway.
  */
 function createRateLimiter(options: Partial<Options>): RateLimitRequestHandler {
-  return rateLimit({ 
+  return rateLimit({
     ...options,
-    standardHeaders: 'draft-7',
+    standardHeaders: "draft-7",
     legacyHeaders: false,
     handler: (req, res) => {
-      const retryAfterSeconds = Math.ceil(
-        ((options.windowMs ?? 0) as number) / 1000,
-      );
+      const retryAfterSeconds = Math.ceil(((options.windowMs ?? 0) as number) / 1000);
 
-      logger.warn('Rate limit exceeded', {
+      logger.warn("Rate limit exceeded", {
         ip: req.ip,
         userId: req.user?.id,
         path: req.path,
-        requestId: getRequestIdFromHeaders(
-          req.headers as Record<string, unknown>,
-        ),
+        requestId: getRequestIdFromHeaders(req.headers as Record<string, unknown>),
       });
 
       if (retryAfterSeconds > 0) {
-        res.setHeader('Retry-After', String(retryAfterSeconds));
+        res.setHeader("Retry-After", String(retryAfterSeconds));
       }
 
       res.status(429).json({
-        error: 'Too Many Requests',
-        message: 'You have exceeded the rate limit. Please try again later.',
+        error: "Too Many Requests",
+        message: "You have exceeded the rate limit. Please try again later.",
         retryAfter: retryAfterSeconds,
-        requestId: getRequestIdFromHeaders(
-          req.headers as Record<string, unknown>,
-        ),
+        requestId: getRequestIdFromHeaders(req.headers as Record<string, unknown>),
       });
     },
   });
@@ -70,7 +58,7 @@ export const globalRateLimiter: RateLimitRequestHandler = createRateLimiter({
   windowMs: config.rateLimit.windowMs,
   limit: config.rateLimit.maxRequests,
   keyGenerator: (req) => ipKeyGenerator(getClientIp(req)),
-  skip: (req) => req.path === '/health',
+  skip: (req) => req.path === "/health",
 });
 
 /**

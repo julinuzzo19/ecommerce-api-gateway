@@ -1,11 +1,11 @@
-import { App } from './app';
-import { config } from './config/config';
-import { logger } from './utils/logger';
+import { App } from "./app";
+import { config } from "./config/config";
+import { logger } from "./utils/logger";
 
 const app = new App();
 
 app.listen(config.port, () => {
-  logger.info('🚀 API Gateway started successfully', {
+  logger.info("🚀 API Gateway started successfully", {
     port: config.port,
     environment: config.nodeEnv,
     services: {
