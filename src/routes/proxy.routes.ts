@@ -82,7 +82,7 @@ router.use(
 if (config.serverless.users.mode === "offline") {
   router.use(
     "/users",
-    // authMiddleware,
+    authMiddleware,
     // protectedRateLimiter,
     createProxyMiddleware({
       target: config.serverless.users.offlineBaseUrl!,

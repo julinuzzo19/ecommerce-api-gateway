@@ -31,6 +31,10 @@ interface Config {
   security: {
     gatewaySecret: string;
   };
+  redis: {
+    host: string;
+    port: number;
+  };
   rateLimit: {
     windowMs: number;
     maxRequests: number;
@@ -150,6 +154,10 @@ function validateConfig(): Config {
     },
     security: {
       gatewaySecret: process.env.GATEWAY_SECRET!,
+    },
+    redis: {
+      host: process.env.REDIS_HOST ?? "localhost",
+      port: parseInt(process.env.REDIS_PORT ?? "6379", 10),
     },
     rateLimit: {
       windowMs: RATE_LIMIT_DEFAULTS.global.windowMs,

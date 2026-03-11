@@ -2,49 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import axios, { AxiosError } from "axios";
 import { config } from "../config/config";
 import { logger } from "../utils/logger";
-
-// Interfaz para tipar la información del usuario
-interface UserInfo {
-  id: string;
-  email: string;
-  role: string;
-}
-
-// Extender el tipo Request de Express para incluir user e isInternalService
-declare global {
-  namespace Express {
-    interface Request {
-      user?: UserInfo;
-      isInternalService?: boolean;
-    }
-  }
-}
-
-// Caché simple en memoria para evitar validar el mismo token múltiples veces
-// En producción podrías usar Redis para compartir este caché entre instancias
-interface TokenCacheEntry {
-  user: UserInfo;
-  expiry: number;
-}
-
-const tokenCache = new Map<string, TokenCacheEntry>();
-
-// Limpiar tokens expirados del caché cada minuto
-setInterval(() => {
-  const now = Date.now();
-  let deletedCount = 0;
-
-  for (const [token, entry] of tokenCache.entries()) {
-    if (entry.expiry < now) {
-      tokenCache.delete(token);
-      deletedCount++;
-    }
-  }
-
-  if (deletedCount > 0) {
-    logger.debug(`Cleaned ${deletedCount} expired tokens from cache`);
-  }
-}, 60000);
+import { getCachedUser, setCachedUser } from "../utils/auth.cache";
+import { UserInfo } from "../types/auth.types";
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
   const startTime = Date.now();
@@ -74,6 +33,8 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
     // 2. Intentar autenticación por Bearer token (usuarios)
     const authHeader = req.headers.authorization;
+
+    console.log({ authHeader });
 
     if (!authHeader) {
       logger.warn("No authentication method provided", {
@@ -105,24 +66,24 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
     const token = authHeader.replace("Bearer ", "");
 
-    // Verificar si el token está en caché y todavía es válido
-    const cached = tokenCache.get(token);
-    if (cached && cached.expiry > Date.now()) {
-      logger.debug("Token found in cache", { userId: cached.user.id });
+    // Verificar cache Redis distribuido (5-minute TTL)
+    const cached = await getCachedUser(token);
 
-      // Setear headers para los microservicios
-      req.headers["x-user-id"] = cached.user.id;
-      req.headers["x-user-email"] = cached.user.email;
-      req.headers["x-user-role"] = cached.user.role;
+    if (cached) {
+      logger.debug("Token found in Redis cache", { userId: cached.id });
+
+      req.headers["x-user-id"] = cached.id;
+      req.headers["x-user-email"] = cached.email;
+      req.headers["x-user-role"] = cached.role;
       req.headers["x-gateway-secret"] = config.security.gatewaySecret;
 
-      req.user = cached.user;
+      req.user = cached;
       next();
       return;
     }
 
-    // Token no está en caché, validar con Auth Service
-    logger.debug("Validating token with Auth Service");
+    // Cache miss — validar con Auth Service
+    logger.debug("Token not in cache, validating with Auth Service");
 
     const response = await axios.get(`${config.services.auth}/auth/validate`, {
       headers: {
@@ -147,12 +108,8 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
     const user: UserInfo = response.data.user;
 
-    // Guardar en caché por 5 minutos
-    // Esto reduce significativamente la carga en el Auth Service
-    tokenCache.set(token, {
-      user,
-      expiry: Date.now() + 5 * 60 * 1000,
-    });
+    // Persistir en Redis para próximas peticiones (distribuido, multi-instancia)
+    await setCachedUser(token, user);
 
     logger.info("Token validated successfully", {
       userId: user.id,
@@ -228,11 +185,4 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       message: "An unexpected error occurred during authentication",
     });
   }
-}
-
-// Función auxiliar para limpiar el caché manualmente si es necesario
-export function clearTokenCache(): void {
-  const size = tokenCache.size;
-  tokenCache.clear();
-  logger.info(`Token cache cleared. Removed ${size} entries.`);
 }
